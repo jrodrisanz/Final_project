@@ -6,6 +6,8 @@ import webbrowser
 import base64
 import io
 import re
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import linear_kernel
 
 
 
@@ -22,9 +24,10 @@ st.sidebar.info('Aquí puedes poner una barra de navegación o zonas para cargar
 
 
 # Preguntas
-pregunta1 = st.radio('¿Prefieres los clásicos o las producciones contemporáneas?', ['Clásicas', 'Contemporáneas', 'Ambas'])
 
-#pregunta2 = st.radio('¿Cuál es tu género favorito?', ['Acción', 'Drama', 'Comedia', 'Documental', 'Horror', 'Romance', '¯\_(ツ)_/¯'])
+pregunta1 = st.text_input('¿Cuál es tu película o serie favorita?')
+
+pregunta2 = st.radio('¿Prefieres los clásicos o las producciones contemporáneas?', ['Clásicas', 'Contemporáneas', 'Ambas'])
 
 pregunta3 = st.radio('¿Qué tipo de trama te resulta más interesante?', ['Misterio', 'Aventura','Fantasía', '¡Cualquiera!'])
 
@@ -38,19 +41,17 @@ pregunta7 = st.radio('¿Te gustan los finales felices?', ['¿A quién no le va a
 
 pregunta8 = st.text_input('¿Tienes algún tema concreto, época o lugar favorito?')
 
-#pregunta9 = st.selectbox('¿Qué plataforma de streaming utilizas con más frecuencia?', ['Netflix', 'Amazon Prime', 'HBO'])
 
 # Recolectar las respuestas
 respuestas = {
     'pregunta1': pregunta1,
-    #'pregunta2': pregunta2,
+    'pregunta2': pregunta2,
     'pregunta3': pregunta3,
     'pregunta4': pregunta4,
     'pregunta5': pregunta5,
     'pregunta6': (duracion_minima, duracion_maxima),
     'pregunta7': pregunta7,
     'pregunta8': pregunta8,
-    #'pregunta9': pregunta9,
 }
 
 # Mostrar las respuestas
@@ -68,34 +69,37 @@ def buscar_sinonimos(critica, sinonimos):
 #filtrar recomendaciones
 
 def generar_recomendaciones(respuestas):
+
     titles = pd.read_csv('../data/clean/titles.csv', encoding='utf-8', encoding_errors='ignore')
     comments = pd.read_csv('../data/clean/com_group.csv', encoding='utf-8', encoding_errors='ignore')
 
 
-    # 1. Filtro por antiguedad
-    if respuestas['pregunta1'] == 'Clásicas':
-        df_filtrado = titles[titles['release_year'] <= 1990]
-    elif respuestas['pregunta1'] == 'Contemporáneas':
-        df_filtrado = titles[titles['release_year'] > 1990]
-    elif respuestas['pregunta1'] == 'Ambas':
-        df_filtrado = titles
+
+    # 1. Filtro por peli o serie fav
+    tfidf = TfidfVectorizer(stop_words= 'english')              # Definir objeto vectorizador TF_IDF
+    tfidf_matrix = tfidf.fit_transform(titles['description'])   # contruir matriz TF-IDF
+
+    cosine_sim= linear_kernel(tfidf_matrix, tfidf_matrix)       # similitud de cosenos
+
+    indices= pd.Series(titles.index, index= titles['title']).drop_duplicates()  # construir mapa inverso de indices y titulos de peliculas
+
+    idx = indices[respuestas['pregunta1']]
+    sim_scores = list(enumerate(cosine_sim[idx]))
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    movie_id = [i[0] for i in sim_scores]
+    df_filtrado = titles.iloc[movie_id]
+    df_filtrado = df_filtrado.iloc[1:]
 
 
-    # 2. Filtro por género favorito
-#    if respuestas['pregunta2'] == 'Acción':
-#       df_filtrado = df_filtrado[df_filtrado['genres'].str.contains('action', case=False)]
-#  elif respuestas['pregunta2'] == 'Drama':
-#        df_filtrado = df_filtrado[df_filtrado['genres'].str.contains('drama', case=False)]
-#    elif respuestas['pregunta2'] == 'Comedia':
-#        df_filtrado = df_filtrado[df_filtrado['genres'].str.contains('comedy', case=False)]
-#    elif respuestas['pregunta2'] == 'Documental':
-#        df_filtrado = df_filtrado[df_filtrado['genres'].str.contains('documentation', case=False)]
-#    elif respuestas['pregunta2'] == 'Horror':
-#        df_filtrado = df_filtrado[df_filtrado['genres'].str.contains('horror', case=False) | df_filtrado['genres'].str.contains('thriller', case=False)]
-#    elif respuestas['pregunta2'] == 'Romance':
-#        df_filtrado = df_filtrado[df_filtrado['genres'].str.contains('romance', case=False)]
-#    elif respuestas['pregunta2'] == '¯\_(ツ)_/¯':
-#        pass
+
+
+    # 2. Filtro por antiguedad
+    if respuestas['pregunta2'] == 'Clásicas':
+        df_filtrado = df_filtrado[df_filtrado['release_year'] <= 1990]
+    elif respuestas['pregunta2'] == 'Contemporáneas':
+        df_filtrado = df_filtrado[df_filtrado['release_year'] > 1990]
+    elif respuestas['pregunta2'] == 'Ambas':
+        pass
 
 
     # 3. Filtro por tipo de trama favorita
@@ -163,16 +167,9 @@ def generar_recomendaciones(respuestas):
         pass
 
 
-    # 9. Filtro por plataforma
-#    if respuestas['pregunta9'] != '':
-#        plat_favorito = respuestas['pregunta9']
-#        df_filtrado = df_filtrado[df_filtrado['platform'].str.contains(plat_favorito, case=False)]
-#    else:
-#        pass
-#
-#    test_solution = df_filtrado['title'].tolist()
-#
-#    return test_solution
+
+    test_solution = df_filtrado['title'].tolist()
+    return test_solution
 
 
 
