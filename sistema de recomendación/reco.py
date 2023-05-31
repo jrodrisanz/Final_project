@@ -7,7 +7,10 @@ import base64
 import io
 import re
 
-st.title('FlickPick')
+
+
+st.image('../images/Sweet_Popcorn__1_-removebg-preview (1).png', use_column_width=False)
+
 
 st.write('¡Welcome to FlickPick! tu recomendador de películas personalizado, pero personalizado de verdad. Este test te ayudará a descubrir películas y series que se ajusten a tus preferencias y gustos. Responde las siguientes preguntas y al final obtendrás recomendaciones. ¡Comencemos!')
 
@@ -17,24 +20,22 @@ st.sidebar.info('Aquí puedes poner una barra de navegación o zonas para cargar
 
 
 # Preguntas
-pregunta1 = st.radio('¿Prefieres los clásicos o las nuevas?', ['Clásicas', 'Contemporáneas', 'Ambas'])
+pregunta1 = st.radio('¿Prefieres los clásicos o las nuevas?', ['Clásicas', 'Contemporáneas', '¯\_(ツ)_/¯'])
 
-pregunta2 = st.radio('¿Cuál es tu género favorito?', ['Acción', 'Drama', 'Comedia', 'Documental', 'Horror', 'Romance', 'TODOS'])
+pregunta2 = st.radio('¿Cuál es tu género favorito?', ['Acción', 'Drama', 'Comedia', 'Documental', 'Horror', 'Romance', '¯\_(ツ)_/¯'])
 
-pregunta3 = st.radio('¿Qué tipo de trama te resulta más interesante?', ['Misterio', 'Aventura','Fantasía', '¡Cualquiera!'])
+pregunta3 = st.radio('¿Qué tipo de trama te resulta más interesante?', ['Misterio', 'Aventura','Fantasía', '¯\_(ツ)_/¯'])
 
 pregunta4 = st.text_input('Escribe el nombre del actor o la actriz que deba aparecer en tu lista (o no escribas ninguno)')
 
-pregunta5 = st.radio('¿Prefieres películas basadas en hechos reales o ficción?', ['Hechos reales', 'Ficción', '¡Cualquiera!'])
-
-#pregunta6 = st.selectbox('¿Qué duración prefieres?', ['Cortas (menos de 90 minutos)', 'Estándar (90-120 minutos)', 'Largas (más de 120 minutos)'])
+pregunta5 = st.radio('¿Prefieres películas basadas en hechos reales o ficción?', ['Hechos reales', 'Ficción', '¯\_(ツ)_/¯'])
 
 duracion_minima = st.slider('Duración mínima (minutos)', 0, 300, 0)
 duracion_maxima = st.slider('Duración máxima (minutos)', 0, 300, 300)
 
 pregunta7 = st.radio('¿Te gustan los finales felices?', ['Mucho', 'No', '¯\_(ツ)_/¯'])
 
-pregunta8 = st.text_input('¿Tienes alguna preferencia sobre el lugar o la época en la que se desarrolla la película?')
+pregunta8 = st.text_input('¿Tienes algún tema concreto, época o lugar favorito?')
 
 pregunta9 = st.selectbox('¿Qué plataforma de streaming utilizas con más frecuencia?', ['Netflix', 'Amazon Prime', 'HBO'])
 
@@ -55,6 +56,12 @@ respuestas = {
 st.write('Respuestas seleccionadas:')
 st.write(respuestas)
 
+def buscar_sinonimos(critica, sinonimos):
+    for sinonimo in sinonimos:
+        if sinonimo in critica:
+            return True
+    return False
+
 
 
 #filtrar recomendaciones
@@ -63,13 +70,15 @@ def generar_recomendaciones(respuestas):
     titles = pd.read_csv('../data/clean/titles.csv', encoding='utf-8', encoding_errors='ignore')
     comments = pd.read_csv('../data/clean/com_group.csv', encoding='utf-8', encoding_errors='ignore')
 
+
     # 1. Filtro por antiguedad
     if respuestas['pregunta1'] == 'Clásicas':
         df_filtrado = titles[titles['release_year'] <= 1990]
     elif respuestas['pregunta1'] == 'Contemporáneas':
         df_filtrado = titles[titles['release_year'] > 1990]
-    elif respuestas['pregunta1'] == 'Ambas':
+    elif respuestas['pregunta1'] == '¯\_(ツ)_/¯':
         df_filtrado = titles
+
 
     # 2. Filtro por género favorito
     if respuestas['pregunta2'] == 'Acción':
@@ -84,19 +93,14 @@ def generar_recomendaciones(respuestas):
         df_filtrado = df_filtrado[df_filtrado['genres'].str.contains('horror', case=False) | df_filtrado['genres'].str.contains('thriller', case=False)]
     elif respuestas['pregunta2'] == 'Romance':
         df_filtrado = df_filtrado[df_filtrado['genres'].str.contains('romance', case=False)]
-    elif respuestas['pregunta2'] == 'TODOS':
+    elif respuestas['pregunta2'] == '¯\_(ツ)_/¯':
         pass
 
-# 3. Filtro por tipo de trama favorita
+
+    # 3. Filtro por tipo de trama favorita
     sinonimos_misterio = ['mystery', 'enigma', 'puzzle', 'riddle', 'conundrum', 'secret', 'intrigue', 'clue', 'suspense']
     sinonimos_aventura = ['thrill', 'adventure', 'expedition', 'journey', 'quest', 'explor', 'trek', 'voyage', 'clue', 'safari', 'exploration']
     sinonimos_fantasia = ['fantasy', 'imagination', 'imaginary', 'enchant', 'magic', 'tail', 'fairy', 'myth', 'wonder', 'dream', 'illusion', 'super', 'superhero']
-
-    def buscar_sinonimos(critica, sinonimos):
-        for sinonimo in sinonimos:
-            if sinonimo in critica:
-                return True
-        return False
 
     if respuestas['pregunta3'] == 'Misterio':
         comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_misterio))]
@@ -107,9 +111,8 @@ def generar_recomendaciones(respuestas):
     elif respuestas['pregunta3'] == 'Fantasía':
         comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_fantasia))]
         df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
-    elif respuestas['pregunta3'] == '¡Cualquiera!':
+    elif respuestas['pregunta3'] == '¯\_(ツ)_/¯':
         pass
-
 
 
     # 4. Filtro por actor o actriz favorito
@@ -129,7 +132,7 @@ def generar_recomendaciones(respuestas):
     elif respuestas['pregunta5'] == "Hechos reales":
         comentarios_filtrados = comments[~comments['review'].apply(lambda x: buscar_sinonimos(x, palabras_clave_ficcion))]
         df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
-    elif respuestas['pregunta5'] == '¡Cualquiera!':
+    elif respuestas['pregunta5'] == '¯\_(ツ)_/¯':
         pass
 
 
@@ -150,13 +153,25 @@ def generar_recomendaciones(respuestas):
         pass
 
 
+    # 8. Filtro por tema, época o lugar favorito
+    if respuestas['pregunta8'] != '':
+        tema = respuestas['pregunta4']
+        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, tema))]
+        df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
+    else:
+        pass
 
-    # Resto de filtros...
-    # df_filtrado = df_filtrado[...]
 
-    recomendaciones = df_filtrado['title'].tolist()
+    # 9. Filtro por plataforma
+    if respuestas['pregunta9'] != '':
+        plat_favorito = respuestas['pregunta9']
+        df_filtrado = df_filtrado[df_filtrado['platform'].str.contains(plat_favorito, case=False)]
+    else:
+        pass
 
-    return recomendaciones
+    test_solution = df_filtrado['title'].tolist()
+
+    return test_solution
 
 
 
