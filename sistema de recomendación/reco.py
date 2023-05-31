@@ -16,7 +16,9 @@ image_path = "../images/Sweet_Popcorn__1_-removebg-preview (1).png"
 st.image(image_path, use_column_width=False)
 
 
-st.write('### Bienvenidos a FlickPick🖖 Tu recomendador de películas personalizado, MUY PERSONALIZADO. Nuestro objetivo es ayudarte a descubrir películas y series que se adapten perfectamente a tí. ¡Empecemos a explorar juntos!')
+st.write('## Bienvenidos a FlickPick🖖 Tu recomendador de películas personalizado, MUY PERSONALIZADO.')
+
+st.write('### Nuestro objetivo es ayudarte a descubrir películas y series que se adapten perfectamente a tí. ¡Empecemos a explorar juntos!')
 
 st.sidebar.header('FlickPick Navigator')
 st.sidebar.subheader('Streamlit Recom')
@@ -142,7 +144,7 @@ def generar_recomendaciones(respuestas):
 
 
     # 6. Filtro por duración de la película
-    df_filtrado = df_filtrado[(df_filtrado['duration'] >= duracion_minima) & (df_filtrado['duration'] <= duracion_maxima)]
+    df_filtrado = df_filtrado[(df_filtrado['runtime'] >= duracion_minima) & (df_filtrado['runtime'] <= duracion_maxima)]
 
 
     # 7. Filtro por final feliz
@@ -171,6 +173,18 @@ def generar_recomendaciones(respuestas):
     test_solution = df_filtrado['title'].tolist()
     return test_solution
 
+
+# Generar recomendaciones
+recomendaciones = generar_recomendaciones(respuestas)
+recomendaciones_10 = recomendaciones[:10]
+
+# Mostrar las recomendaciones
+st.subheader('¡Prepara palomitas, aquí vienen tus recomendaciones!🍿')
+if recomendaciones:
+    for recomendacion in recomendaciones_10:
+        st.write(recomendacion)
+else:
+    st.write('Lo siento, no se encontraron recomendaciones para tus respuestas.')
 
 
 
