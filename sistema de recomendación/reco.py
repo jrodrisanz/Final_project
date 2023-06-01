@@ -8,7 +8,10 @@ import io
 import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
+import matplotlib.pyplot as plt
+import seaborn as sns
 
+st.set_option('deprecation.showPyplotGlobalUse', False)
 
 
 image_path = "../images/Sweet_Popcorn__1_-removebg-preview (1).png"
@@ -16,8 +19,8 @@ image_path = "../images/Sweet_Popcorn__1_-removebg-preview (1).png"
 st.image(image_path, use_column_width=False)
 
 
-st.write('## Bienvenidos a FlickPick🖖 Tu recomendador de películas personalizado, MUY PERSONALIZADO.')
-
+st.write('# Bienvenidos a FlickPick🖖')
+st.write('## Tu recomendador de películas personalizado, MUY PERSONALIZADO.')
 st.write('### Nuestro objetivo es ayudarte a descubrir películas y series que se adapten perfectamente a tí. ¡Empecemos a explorar juntos!')
 
 st.sidebar.header('FlickPick Navigator')
@@ -169,22 +172,42 @@ def generar_recomendaciones(respuestas):
         pass
 
 
-
-    test_solution = df_filtrado['title'].tolist()
-    return test_solution
+    return df_filtrado
 
 
 # Generar recomendaciones
-recomendaciones = generar_recomendaciones(respuestas)
-recomendaciones_10 = recomendaciones[:10]
+df_filtrado = None
 
-# Mostrar las recomendaciones
+if st.button("Generar recomendaciones"):
+    df_filtrado = generar_recomendaciones(respuestas)
+
 st.subheader('¡Prepara palomitas, aquí vienen tus recomendaciones!🍿')
-if recomendaciones:
+if df_filtrado is not None and not df_filtrado.empty:
+    recomendaciones_10 = df_filtrado['title'].tolist()[:10]
     for recomendacion in recomendaciones_10:
         st.write(recomendacion)
 else:
     st.write('Lo siento, no se encontraron recomendaciones para tus respuestas.')
+
+    
+
+# Gráfico de barras del año de lanzamiento
+plt.figure(figsize=(8, 6))
+sns.countplot(x='release_year', data=df_filtrado)
+plt.xlabel('Año de lanzamiento')
+plt.ylabel('Número de películas')
+plt.title('Distribución de películas por año de lanzamiento')
+st.pyplot()
+
+# Histograma de duración de las películas
+plt.figure(figsize=(8, 6))
+sns.histplot(data=df_filtrado, x='runtime', bins=20)
+plt.xlabel('Duración (minutos)')
+plt.ylabel('Número de películas')
+plt.title('Distribución de duración de las películas')
+st.pyplot()
+
+
 
 
 
