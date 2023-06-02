@@ -1,15 +1,19 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from PIL import Image
 import pylab as plt
 import webbrowser
 import base64
 import io
 import re
+
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
+
 import matplotlib.pyplot as plt
 import seaborn as sns
+from wordcloud import WordCloud
 
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
@@ -21,7 +25,8 @@ st.image(image_path, use_column_width=False)
 
 st.write('# Bienvenidos a FlickPick🖖')
 st.write('## Tu recomendador de películas personalizado, MUY PERSONALIZADO.')
-st.write('### Nuestro objetivo es ayudarte a descubrir películas y series que se adapten perfectamente a tí. ¡Empecemos a explorar juntos!')
+st.write('### Nuestro objetivo es ayudarte a descubrir películas y series que se adapten perfectamente a tí.')
+st.write('### ¡Empecemos a explorar juntos!')
 
 st.sidebar.header('FlickPick Navigator')
 st.sidebar.subheader('Streamlit Recom')
@@ -70,14 +75,12 @@ def buscar_sinonimos(critica, sinonimos):
     return False
 
 
-
 #filtrar recomendaciones
 
 def generar_recomendaciones(respuestas):
 
     titles = pd.read_csv('../data/clean/titles.csv', encoding='utf-8', encoding_errors='ignore')
     comments = pd.read_csv('../data/clean/com_group.csv', encoding='utf-8', encoding_errors='ignore')
-
 
 
     # 1. Filtro por peli o serie fav
@@ -94,8 +97,6 @@ def generar_recomendaciones(respuestas):
     movie_id = [i[0] for i in sim_scores]
     df_filtrado = titles.iloc[movie_id]
     df_filtrado = df_filtrado.iloc[1:]
-
-
 
 
     # 2. Filtro por antiguedad
@@ -181,6 +182,45 @@ df_filtrado = None
 if st.button("Generar recomendaciones"):
     df_filtrado = generar_recomendaciones(respuestas)
 
+    plt.style.use('dark_background')
+
+    # Gráfico de barras del año de lanzamiento
+    plt.figure(figsize=(8, 6))
+    sns.countplot(x='release_year', data=df_filtrado)
+    plt.xlabel('Año de lanzamiento')
+    plt.ylabel('Número de películas')
+    plt.title('Distribución de películas por año de lanzamiento')
+    plt.xticks(rotation=90)
+    plt.grid(False)  # Quitar la malla
+    st.pyplot()
+
+    # Histograma de duración de las películas
+    plt.figure(figsize=(8, 6))
+    sns.histplot(data=df_filtrado, x='runtime', bins=20, color= 'red')
+    plt.xlabel('Duración (minutos)')
+    plt.ylabel('Número de películas')
+    plt.title('Distribución de duración de las películas')
+    plt.grid(False)  # Quitar la malla
+    st.pyplot()
+
+    # Gráfico polar géneros
+    df_filtrado['genres'] = df_filtrado['genres'].str.split(',').str[0]
+    data = df_filtrado.groupby('genres').count().T.iloc[0]
+    etiquetas=list(df_filtrado.genres.unique())
+    angulos = np.linspace(0, 2*np.pi, len(etiquetas), endpoint=False)
+    angulos=np.concatenate((angulos, [angulos[0]]))
+    data = np.concatenate((data, [data[0]]))
+    fig = plt.figure()
+    ax = fig.add_subplot(111, polar=True)
+    ax.plot(angulos, data, 'o-', linewidth=2, color= 'red') 
+    ax.fill(angulos, data, alpha=0.25, color= 'red') 
+    ax.set_xticklabels([]) 
+    ax.set_thetagrids(angulos * 180/np.pi, etiquetas+[etiquetas[0]])  
+    ax.set_title('Count by Genre') 
+    ax.grid(False)
+    st.pyplot()
+
+
 st.subheader('¡Prepara palomitas, aquí vienen tus recomendaciones!🍿')
 if df_filtrado is not None and not df_filtrado.empty:
     recomendaciones_10 = df_filtrado['title'].tolist()[:10]
@@ -189,23 +229,10 @@ if df_filtrado is not None and not df_filtrado.empty:
 else:
     st.write('Lo siento, no se encontraron recomendaciones para tus respuestas.')
 
-    
 
-# Gráfico de barras del año de lanzamiento
-plt.figure(figsize=(8, 6))
-sns.countplot(x='release_year', data=df_filtrado)
-plt.xlabel('Año de lanzamiento')
-plt.ylabel('Número de películas')
-plt.title('Distribución de películas por año de lanzamiento')
-st.pyplot()
 
-# Histograma de duración de las películas
-plt.figure(figsize=(8, 6))
-sns.histplot(data=df_filtrado, x='runtime', bins=20)
-plt.xlabel('Duración (minutos)')
-plt.ylabel('Número de películas')
-plt.title('Distribución de duración de las películas')
-st.pyplot()
+
+
 
 
 
