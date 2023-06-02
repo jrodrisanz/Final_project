@@ -247,10 +247,11 @@ if df_filtrado is not None and not df_filtrado.empty:
     column1, column2 = st.columns(2)  # Divide el espacio en dos columnas
     with column1:
         st.subheader('Recomendaciones')
-        for recomendacion in recomendaciones_10:
-            st.write(recomendacion)
+        for i, recomendacion in enumerate(recomendaciones_10, start=1):
+            st.write(f'{i}. {recomendacion}')
 else:
     st.write('Lo siento, no se encontraron recomendaciones para tus respuestas.')
+
 
 if df_filtrado is not None and not df_filtrado.empty:
     actor_counts = df_filtrado['actors'].str.split(',').explode().str.strip().value_counts()
