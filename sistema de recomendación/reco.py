@@ -39,7 +39,7 @@ pregunta3 = st.radio('¿Qué tipo de trama te resulta más interesante?', ['Mist
 
 pregunta4 = st.text_input('Escribe el nombre del actor o la actriz que deba aparecer en tu lista (o no escribas ninguno)')
 
-pregunta5 = st.radio('¿Prefieres películas basadas en hechos reales o ficción?', ['Hechos reales', 'Ficción', '¡Cualquiera!'])
+pregunta5 = st.radio('¿Prefieres que sean basadas en hechos reales o ficción?', ['Hechos reales', 'Ficción', '¡Cualquiera!'])
 
 duracion_minima, duracion_maxima = st.slider('¿Cuánto debería durar?', 0, 300, (0, 300))
 
@@ -97,9 +97,9 @@ def generar_recomendaciones(respuestas):
 
     # 2. Filtro por antiguedad
     if respuestas['pregunta2'] == 'Clásicas':
-        df_filtrado = df_filtrado[df_filtrado['release_year'] <= 1990]
+        df_filtrado = df_filtrado[df_filtrado['release_year'] <= 1999]
     elif respuestas['pregunta2'] == 'Contemporáneas':
-        df_filtrado = df_filtrado[df_filtrado['release_year'] > 1990]
+        df_filtrado = df_filtrado[df_filtrado['release_year'] > 1999]
     elif respuestas['pregunta2'] == 'Ambas':
         pass
 
@@ -162,8 +162,8 @@ def generar_recomendaciones(respuestas):
 
     # 8. Filtro por tema, época o lugar favorito
     if respuestas['pregunta8'] != '':
-        tema = respuestas['pregunta4']
-        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, tema))]
+        tema = respuestas['pregunta8']
+        comentarios_filtrados = comments[comments['review'].str.contains(tema, case=False)]
         df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
     else:
         pass
@@ -189,7 +189,7 @@ if st.button("Generar recomendaciones"):
         sns.countplot(x='release_year', data=df_filtrado, ax=ax1)
         ax1.set_xlabel('Año de lanzamiento')
         ax1.set_ylabel('Número de películas')
-        ax1.set_title('Distribución de películas por año de lanzamiento')
+        ax1.set_title('Distribución por año de lanzamiento')
         ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90)
         ax1.grid(False)  # Quitar la malla
         st.pyplot(fig1)
@@ -200,7 +200,7 @@ if st.button("Generar recomendaciones"):
         sns.histplot(data=df_filtrado, x='runtime', bins=20, color='red', ax=ax2)
         ax2.set_xlabel('Duración (minutos)')
         ax2.set_ylabel('Número de películas')
-        ax2.set_title('Distribución de duración de las películas')
+        ax2.set_title('Distribución de duración')
         ax2.grid(False)  # Quitar la malla
         st.pyplot(fig2)
 
@@ -223,7 +223,7 @@ if st.button("Generar recomendaciones"):
         ax.fill(angulos, data, alpha=0.25, color= 'red') 
         ax.set_xticklabels([]) 
         ax.set_thetagrids(angulos * 180/np.pi, etiquetas+[etiquetas[0]])  
-        ax.set_title('Count by Genre') 
+        ax.set_title('Distribución de géneros') 
         ax.grid(True, color= '#444444' )
         st.pyplot(fig3)
     
