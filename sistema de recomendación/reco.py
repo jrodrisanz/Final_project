@@ -28,10 +28,6 @@ st.write('## Tu recomendador de películas personalizado, MUY PERSONALIZADO.')
 st.write('### Nuestro objetivo es ayudarte a descubrir películas y series que se adapten perfectamente a tí.')
 st.write('### ¡Empecemos a explorar juntos!')
 
-st.sidebar.header('FlickPick Navigator')
-st.sidebar.subheader('Streamlit Recom')
-st.sidebar.info('Aquí puedes poner una barra de navegación o zonas para cargar archivos')
-
 
 # Preguntas
 
@@ -184,50 +180,90 @@ if st.button("Generar recomendaciones"):
 
     plt.style.use('dark_background')
 
+    # Crear dos columnas en el layout de Streamlit
+    column1, column2 = st.columns(2)
+
     # Gráfico de barras del año de lanzamiento
-    plt.figure(figsize=(8, 6))
-    sns.countplot(x='release_year', data=df_filtrado)
-    plt.xlabel('Año de lanzamiento')
-    plt.ylabel('Número de películas')
-    plt.title('Distribución de películas por año de lanzamiento')
-    plt.xticks(rotation=90)
-    plt.grid(False)  # Quitar la malla
-    st.pyplot()
+    with column1:
+        fig1, ax1 = plt.subplots(figsize=(8, 6))
+        sns.countplot(x='release_year', data=df_filtrado, ax=ax1)
+        ax1.set_xlabel('Año de lanzamiento')
+        ax1.set_ylabel('Número de películas')
+        ax1.set_title('Distribución de películas por año de lanzamiento')
+        ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90)
+        ax1.grid(False)  # Quitar la malla
+        st.pyplot(fig1)
 
     # Histograma de duración de las películas
-    plt.figure(figsize=(8, 6))
-    sns.histplot(data=df_filtrado, x='runtime', bins=20, color= 'red')
-    plt.xlabel('Duración (minutos)')
-    plt.ylabel('Número de películas')
-    plt.title('Distribución de duración de las películas')
-    plt.grid(False)  # Quitar la malla
-    st.pyplot()
+    with column2:
+        fig2, ax2 = plt.subplots(figsize=(8, 6))
+        sns.histplot(data=df_filtrado, x='runtime', bins=20, color='red', ax=ax2)
+        ax2.set_xlabel('Duración (minutos)')
+        ax2.set_ylabel('Número de películas')
+        ax2.set_title('Distribución de duración de las películas')
+        ax2.grid(False)  # Quitar la malla
+        st.pyplot(fig2)
+
+
+    column1, column2 = st.columns(2)
 
     # Gráfico polar géneros
-    df_filtrado['genres'] = df_filtrado['genres'].str.split(',').str[0]
-    data = df_filtrado.groupby('genres').count().T.iloc[0]
-    etiquetas=list(df_filtrado.genres.unique())
-    angulos = np.linspace(0, 2*np.pi, len(etiquetas), endpoint=False)
-    angulos=np.concatenate((angulos, [angulos[0]]))
-    data = np.concatenate((data, [data[0]]))
-    fig = plt.figure()
-    ax = fig.add_subplot(111, polar=True)
-    ax.plot(angulos, data, 'o-', linewidth=2, color= 'red') 
-    ax.fill(angulos, data, alpha=0.25, color= 'red') 
-    ax.set_xticklabels([]) 
-    ax.set_thetagrids(angulos * 180/np.pi, etiquetas+[etiquetas[0]])  
-    ax.set_title('Count by Genre') 
-    ax.grid(False)
-    st.pyplot()
+    with column1:
+        df_filtrado['genres'] = df_filtrado['genres'].str.split(',').str[0]
+        data = df_filtrado.groupby('genres').count().T.iloc[0]
+
+        etiquetas=list(df_filtrado.genres.unique())
+        angulos = np.linspace(0, 2*np.pi, len(etiquetas), endpoint=False)
+        angulos=np.concatenate((angulos, [angulos[0]]))
+        data = np.concatenate((data, [data[0]]))
+        fig3 = plt.figure()
+
+        ax = fig3.add_subplot(111, polar=True)
+        ax.plot(angulos, data, 'o-', linewidth=2, color= 'red') 
+        ax.fill(angulos, data, alpha=0.25, color= 'red') 
+        ax.set_xticklabels([]) 
+        ax.set_thetagrids(angulos * 180/np.pi, etiquetas+[etiquetas[0]])  
+        ax.set_title('Count by Genre') 
+        ax.grid(True, color= '#444444' )
+        st.pyplot(fig3)
+    
+
+    # Gráfico de tarta de la distribución de plataformas
+    with column2:
+        platform_counts = df_filtrado['platform'].value_counts()
+        labels = platform_counts.index.tolist()
+        values = platform_counts.values.tolist()
+
+        fig4, ax3 = plt.subplots(figsize=(8, 6))
+        ax3.pie(values, labels=labels, autopct='%1.1f%%', startangle=90)
+        ax3.set_title('Distribución de Plataformas')
+        st.pyplot(fig4)
+
 
 
 st.subheader('¡Prepara palomitas, aquí vienen tus recomendaciones!🍿')
 if df_filtrado is not None and not df_filtrado.empty:
     recomendaciones_10 = df_filtrado['title'].tolist()[:10]
-    for recomendacion in recomendaciones_10:
-        st.write(recomendacion)
+    column1, column2 = st.columns(2)  # Divide el espacio en dos columnas
+    with column1:
+        st.subheader('Recomendaciones')
+        for recomendacion in recomendaciones_10:
+            st.write(recomendacion)
 else:
     st.write('Lo siento, no se encontraron recomendaciones para tus respuestas.')
+
+if df_filtrado is not None and not df_filtrado.empty:
+    actor_counts = df_filtrado['actors'].str.split(',').explode().str.strip().value_counts()
+    actores_mas_comunes = actor_counts.sort_values(ascending=False).head(10)
+    with column2:
+        st.subheader('Actores más comunes')
+        for actor, count in actores_mas_comunes.items():
+            st.write(f'{actor}: {count} apariciones')
+else:
+    st.write('No se encontraron datos para mostrar.')
+
+
+
 
 
 
