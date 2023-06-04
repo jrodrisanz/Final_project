@@ -15,19 +15,21 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from wordcloud import WordCloud
 
+
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
-
-image_path = "../images/Sweet_Popcorn__1_-removebg-preview (1).png"
-
-st.image(image_path, use_column_width=False)
-
+st.image("../images/logo2.png", use_column_width=False)
 
 st.write('# Bienvenidos a FlickPick🖖')
-st.write('## Tu recomendador de películas personalizado, MUY PERSONALIZADO.')
-st.write('### Nuestro objetivo es ayudarte a descubrir películas y series que se adapten perfectamente a tí.')
-st.write('### ¡Empecemos a explorar juntos!')
+#st.write('## Nuestro objetivo es ayudarte a descubrir películas y series que se adapten perfectamente a ti.')
 
+
+column1, column2 = st.columns(2)
+
+with column1:
+    st.write('### Responde el siguiente test para descubrir tus preferencias cinematográficas y obtener una lista de recomendaciones. ¡Empecemos a explorar juntos!')
+with column2:
+    st.image('../images/sodadef-removebg-preview.png', use_column_width=False)
 
 # Preguntas
 
@@ -35,17 +37,19 @@ pregunta1 = st.text_input('¿Cuál es tu película o serie favorita?')
 
 pregunta2 = st.radio('¿Prefieres los clásicos o las producciones contemporáneas?', ['Clásicas', 'Contemporáneas', 'Ambas'])
 
-pregunta3 = st.radio('¿Qué tipo de trama te resulta más interesante?', ['Misterio', 'Aventura','Fantasía', '¡Cualquiera!'])
+pregunta3 = st.radio('¿Qué tipo de trama te resulta más interesante?', ['Misterio', 'Aventura','Fantasía', 'Comedia', 'Romance', 'Terror','¡Cualquiera!'])
 
-pregunta4 = st.text_input('Escribe el nombre del actor o la actriz que deba aparecer en tu lista (o no escribas ninguno)')
+#pregunta4 = st.text_input('Escribe el nombre del actor o la actriz que deba aparecer en tu lista (o no escribas ninguno)')
 
 pregunta5 = st.radio('¿Prefieres que sean basadas en hechos reales o ficción?', ['Hechos reales', 'Ficción', '¡Cualquiera!'])
 
 duracion_minima, duracion_maxima = st.slider('¿Cuánto debería durar?', 0, 300, (0, 300))
 
-pregunta7 = st.radio('¿Te gustan los finales felices?', ['¿A quién no le va a gustar?', 'No', '¯\_(ツ)_/¯'])
+pregunta7 = st.radio('¿Te gustan los finales felices?', ['Sí', 'No', '¯\_(ツ)_/¯'])
 
-pregunta8 = st.text_input('¿Tienes algún tema concreto, época o lugar favorito?')
+pregunta8 = st.text_input('¿Tienes alguna temática, época o lugar favorito?')
+
+pregunta4 = st.text_input('Escribe el nombre del actor o la actriz que deba aparecer en tu lista (o no escribas ninguno)')
 
 
 # Recolectar las respuestas
@@ -104,12 +108,24 @@ def generar_recomendaciones(respuestas):
         pass
 
 
-    # 3. Filtro por tipo de trama favorita
+# 3. Filtro por tipo de trama favorita
     sinonimos_misterio = ['mystery', 'enigma', 'puzzle', 'riddle', 'conundrum', 'secret', 'intrigue', 'clue', 'suspense']
     sinonimos_aventura = ['thrill', 'adventure', 'expedition', 'journey', 'quest', 'explor', 'trek', 'voyage', 'clue', 'safari', 'exploration']
     sinonimos_fantasia = ['fantasy', 'imagination', 'imaginary', 'enchant', 'magic', 'tail', 'fairy', 'myth', 'wonder', 'dream', 'illusion', 'super', 'superhero']
+    sinonimos_romance = ['romance', 'love', 'affection', 'passion', 'relationship']
+    sinonimos_comedia = ['comedy', 'humor', 'funny', 'laughter']
+    sinonimos_terror = ['fear', 'scary', 'fright']
 
-    if respuestas['pregunta3'] == 'Misterio':
+    if respuestas['pregunta3'] == 'Comedia':
+        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_comedia))]
+        df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
+    elif respuestas['pregunta3'] == 'Terror':
+        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_terror))]
+        df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
+    elif respuestas['pregunta3'] == 'Romance':
+        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_romance))]
+        df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
+    elif respuestas['pregunta3'] == 'Misterio':
         comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_misterio))]
         df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
     elif respuestas['pregunta3'] == 'Aventura':
@@ -122,6 +138,7 @@ def generar_recomendaciones(respuestas):
         pass
 
 
+
     # 4. Filtro por actor o actriz favorito
     if respuestas['pregunta4'] != '':
         actor_favorito = respuestas['pregunta4']
@@ -131,7 +148,7 @@ def generar_recomendaciones(respuestas):
 
 
     # 6. Filtro para determinar ficción
-    palabras_clave_ficcion = ['fiction', 'imaginary', 'fantasy', 'fictional', 'otherworld', 'extraterrestrial']
+    palabras_clave_ficcion = ['fiction', 'imaginary', 'anime', 'cartoon', 'fantasy', 'fictional', 'otherworld', 'extraterrestrial']
     
     if respuestas['pregunta5'] == "Ficción":
         comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, palabras_clave_ficcion))]
@@ -150,7 +167,7 @@ def generar_recomendaciones(respuestas):
     # 7. Filtro por final feliz
     sinonimos_final_feliz = ['happy ending', 'positive outcome', 'pleasant conclusion', 'satisfying resolution', 'joyful finale', 'contented ending', 'delightful outcome', 'cheerful conclusion', 'pleasant ending', 'uplifting finale']
     
-    if respuestas['pregunta7'] == '¿A quién no le va a gustar?':
+    if respuestas['pregunta7'] == 'Sí':
         comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_final_feliz))]
         df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
     elif respuestas['pregunta7'] == 'No':
@@ -176,7 +193,16 @@ def generar_recomendaciones(respuestas):
 df_filtrado = None
 
 if st.button("Generar recomendaciones"):
+    loading_image = st.image('../images/eating-popcorn-ms-chalice.gif', use_column_width=True) 
     df_filtrado = generar_recomendaciones(respuestas)
+    loading_image.empty()
+
+    column1, column2 = st.columns(2)
+
+    with column1:
+        st.image('../images/popdef-removebg-preview.png', use_column_width=False)
+    with column2:
+        st.write('### Ahora podrás explorar diferentes gráficos sobre las películas y series que más se adaptan a ti')
 
     plt.style.use('dark_background')
 
@@ -261,7 +287,8 @@ if df_filtrado is not None and not df_filtrado.empty:
         for actor, count in actores_mas_comunes.items():
             st.write(f'{actor}: {count} apariciones')
 else:
-    st.write('No se encontraron datos para mostrar.')
+    pass
+    #st.write('No se encontraron datos para mostrar.')
 
 
 
