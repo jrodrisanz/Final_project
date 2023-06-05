@@ -21,7 +21,6 @@ st.set_option('deprecation.showPyplotGlobalUse', False)
 st.image("../images/logo2.png", use_column_width=False)
 
 st.write('# Bienvenidos a FlickPick🖖')
-#st.write('## Nuestro objetivo es ayudarte a descubrir películas y series que se adapten perfectamente a ti.')
 
 
 column1, column2 = st.columns(2)
@@ -31,9 +30,13 @@ with column1:
 with column2:
     st.image('../images/sodadef-removebg-preview.png', use_column_width=False)
 
+titles = pd.read_csv('../data/clean/titles.csv', encoding='utf-8', encoding_errors='ignore')
+
+fav_film= titles['title'].tolist()
+
 # Preguntas
 
-pregunta1 = st.text_input('¿Cuál es tu película o serie favorita?')
+pregunta1 = st.selectbox('¿Cuál es tu película o serie favorita?', fav_film)
 
 pregunta2 = st.radio('¿Prefieres los clásicos o las producciones contemporáneas?', ['Clásicas', 'Contemporáneas', 'Ambas'])
 
@@ -64,10 +67,6 @@ respuestas = {
     'pregunta8': pregunta8,
 }
 
-# Mostrar las respuestas
-#st.write('Respuestas seleccionadas:')
-#st.write(respuestas)
-
 def buscar_sinonimos(critica, sinonimos):
     for sinonimo in sinonimos:
         if sinonimo in critica:
@@ -79,9 +78,7 @@ def buscar_sinonimos(critica, sinonimos):
 
 def generar_recomendaciones(respuestas):
 
-    titles = pd.read_csv('../data/clean/titles.csv', encoding='utf-8', encoding_errors='ignore')
     comments = pd.read_csv('../data/clean/com_group.csv', encoding='utf-8', encoding_errors='ignore')
-
 
     # 1. Filtro por peli o serie fav
     tfidf = TfidfVectorizer(stop_words= 'english')              # Definir objeto vectorizador TF_IDF
@@ -113,8 +110,8 @@ def generar_recomendaciones(respuestas):
     sinonimos_aventura = ['thrill', 'adventure', 'expedition', 'journey', 'quest', 'explor', 'trek', 'voyage', 'clue', 'safari', 'exploration']
     sinonimos_fantasia = ['fantasy', 'imagination', 'imaginary', 'enchant', 'magic', 'tail', 'fairy', 'myth', 'wonder', 'dream', 'illusion', 'super', 'superhero']
     sinonimos_romance = ['romance', 'love', 'affection', 'passion', 'relationship']
-    sinonimos_comedia = ['comedy', 'humor', 'funny', 'laughter']
-    sinonimos_terror = ['fear', 'scary', 'fright']
+    sinonimos_comedia = ['comedy', 'humor', 'funny', 'laughter', 'laugh', 'crack up']
+    sinonimos_terror = ['fear', 'scary', 'fright', 'terrify', 'scare']
 
     if respuestas['pregunta3'] == 'Comedia':
         comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_comedia))]
@@ -252,16 +249,22 @@ if st.button("Generar recomendaciones"):
         ax.set_title('Distribución de géneros') 
         ax.grid(True, color= '#444444' )
         st.pyplot(fig3)
-    
 
-    # Gráfico de tarta de la distribución de plataformas
     with column2:
         platform_counts = df_filtrado['platform'].value_counts()
         labels = platform_counts.index.tolist()
         values = platform_counts.values.tolist()
 
         fig4, ax3 = plt.subplots(figsize=(8, 6))
-        ax3.pie(values, labels=labels, autopct='%1.1f%%', startangle=90)
+
+        # Definir un diccionario de colores personalizados
+        colors = {'Amazon': 'blue', 'Netflix': 'red', 'HBO': 'purple'}
+
+        # Obtener el color correspondiente para cada etiqueta
+        pie_colors = [colors.get(label, 'gray') for label in labels]
+
+        ax3.pie(values, labels=labels, autopct='%1.1f%%', startangle=90, colors=pie_colors)
+
         ax3.set_title('Distribución de Plataformas')
         st.pyplot(fig4)
 
@@ -270,7 +273,7 @@ if st.button("Generar recomendaciones"):
 st.subheader('¡Prepara palomitas, aquí vienen tus recomendaciones!🍿')
 if df_filtrado is not None and not df_filtrado.empty:
     recomendaciones_10 = df_filtrado['title'].tolist()[:10]
-    column1, column2 = st.columns(2)  # Divide el espacio en dos columnas
+    column1, column2, column3 = st.columns(3)  # Divide el espacio en dos columnas
     with column1:
         st.subheader('Recomendaciones')
         for i, recomendacion in enumerate(recomendaciones_10, start=1):
@@ -289,6 +292,16 @@ if df_filtrado is not None and not df_filtrado.empty:
 else:
     pass
     #st.write('No se encontraron datos para mostrar.')
+
+if df_filtrado is not None and not df_filtrado.empty:
+    recom_imdb = df_filtrado.sort_values('imdb_score', ascending=False)
+    recom_10_imdb = recom_imdb['title'].tolist()[:10]
+    with column3:
+        st.subheader('Aclamadas por la crítica')
+        for i, recomendacion in enumerate(recom_10_imdb, start=1):
+            st.write(f'{i}. {recomendacion}')
+else:
+    pass
 
 
 
