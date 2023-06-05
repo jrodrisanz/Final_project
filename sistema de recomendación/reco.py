@@ -15,11 +15,27 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from wordcloud import WordCloud
 
-
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
-st.image("../images/logo2.png", use_column_width=False)
 
+def add_bg_from_local(image_file):
+    with open(image_file, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read())
+    st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-image: url(data:image/{"png"};base64,{encoded_string.decode()});
+        background-size: cover
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+    )
+add_bg_from_local('../images/3968016.png')
+
+
+st.image("../images/logo2.png", use_column_width=False)
 st.write('# Bienvenidos a FlickPick🖖')
 
 
@@ -31,8 +47,8 @@ with column2:
     st.image('../images/sodadef-removebg-preview.png', use_column_width=False)
 
 titles = pd.read_csv('../data/clean/titles.csv', encoding='utf-8', encoding_errors='ignore')
-
 fav_film= titles['title'].tolist()
+
 
 # Preguntas
 
@@ -41,8 +57,6 @@ pregunta1 = st.selectbox('¿Cuál es tu película o serie favorita?', fav_film)
 pregunta2 = st.radio('¿Prefieres los clásicos o las producciones contemporáneas?', ['Clásicas', 'Contemporáneas', 'Ambas'])
 
 pregunta3 = st.radio('¿Qué tipo de trama te resulta más interesante?', ['Misterio', 'Aventura','Fantasía', 'Comedia', 'Romance', 'Terror','¡Cualquiera!'])
-
-#pregunta4 = st.text_input('Escribe el nombre del actor o la actriz que deba aparecer en tu lista (o no escribas ninguno)')
 
 pregunta5 = st.radio('¿Prefieres que sean basadas en hechos reales o ficción?', ['Hechos reales', 'Ficción', '¡Cualquiera!'])
 
@@ -90,7 +104,7 @@ def generar_recomendaciones(respuestas):
 
     idx = indices[respuestas['pregunta1']]
     sim_scores = list(enumerate(cosine_sim[idx]))
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
+    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)       #ordenar las peliculas por similitud de contenido
     movie_id = [i[0] for i in sim_scores]
     df_filtrado = titles.iloc[movie_id]
     df_filtrado = df_filtrado.iloc[1:]
@@ -105,7 +119,7 @@ def generar_recomendaciones(respuestas):
         pass
 
 
-# 3. Filtro por tipo de trama favorita
+    # 3. Filtro por tipo de trama favorita
     sinonimos_misterio = ['mystery', 'enigma', 'puzzle', 'riddle', 'conundrum', 'secret', 'intrigue', 'clue', 'suspense']
     sinonimos_aventura = ['thrill', 'adventure', 'expedition', 'journey', 'quest', 'explor', 'trek', 'voyage', 'clue', 'safari', 'exploration']
     sinonimos_fantasia = ['fantasy', 'imagination', 'imaginary', 'enchant', 'magic', 'tail', 'fairy', 'myth', 'wonder', 'dream', 'illusion', 'super', 'superhero']
@@ -135,15 +149,6 @@ def generar_recomendaciones(respuestas):
         pass
 
 
-
-    # 4. Filtro por actor o actriz favorito
-    if respuestas['pregunta4'] != '':
-        actor_favorito = respuestas['pregunta4']
-        df_filtrado = df_filtrado[df_filtrado['actors'].str.contains(actor_favorito, case=False)]
-    else:
-        pass
-
-
     # 6. Filtro para determinar ficción
     palabras_clave_ficcion = ['fiction', 'imaginary', 'anime', 'cartoon', 'fantasy', 'fictional', 'otherworld', 'extraterrestrial']
     
@@ -157,7 +162,7 @@ def generar_recomendaciones(respuestas):
         pass
 
 
-    # 6. Filtro por duración de la película
+    # 6. Filtro por duración
     df_filtrado = df_filtrado[(df_filtrado['runtime'] >= duracion_minima) & (df_filtrado['runtime'] <= duracion_maxima)]
 
 
@@ -182,6 +187,13 @@ def generar_recomendaciones(respuestas):
     else:
         pass
 
+    # 4. Filtro por actor o actriz favorito
+    if respuestas['pregunta4'] != '':
+        actor_favorito = respuestas['pregunta4']
+        df_filtrado = df_filtrado[df_filtrado['actors'].str.contains(actor_favorito, case=False)]
+    else:
+        pass
+
 
     return df_filtrado
 
@@ -203,28 +215,35 @@ if st.button("Generar recomendaciones"):
 
     plt.style.use('dark_background')
 
-    # Crear dos columnas en el layout de Streamlit
     column1, column2 = st.columns(2)
 
     # Gráfico de barras del año de lanzamiento
+    bar_heights = df_filtrado['release_year'].value_counts().sort_index()
+    max_height = bar_heights.max()
+    max_height_index = bar_heights.idxmax()
+    palette = ['red' if year == max_height_index else 'gray' for year in bar_heights.index]
+
     with column1:
         fig1, ax1 = plt.subplots(figsize=(8, 6))
-        sns.countplot(x='release_year', data=df_filtrado, ax=ax1)
+        sns.barplot(x=bar_heights.index, y=bar_heights.values, ax=ax1, palette=palette)
         ax1.set_xlabel('Año de lanzamiento')
         ax1.set_ylabel('Número de películas')
         ax1.set_title('Distribución por año de lanzamiento')
         ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90)
-        ax1.grid(False)  # Quitar la malla
+        ax1.grid(False) 
         st.pyplot(fig1)
 
-    # Histograma de duración de las películas
+
+    # Gráfico de línea de la distribución de duración de las películas
     with column2:
         fig2, ax2 = plt.subplots(figsize=(8, 6))
-        sns.histplot(data=df_filtrado, x='runtime', bins=20, color='red', ax=ax2)
+        runtime_counts = df_filtrado['runtime'].value_counts().sort_index()
+        smoothed_counts = runtime_counts.rolling(window=5, min_periods=1, center=True).mean()  # Aplicar promedio móvil
+        sns.lineplot(data=smoothed_counts, x=runtime_counts.index, y=smoothed_counts.values, color='red', ax=ax2)
         ax2.set_xlabel('Duración (minutos)')
         ax2.set_ylabel('Número de películas')
         ax2.set_title('Distribución de duración')
-        ax2.grid(False)  # Quitar la malla
+        ax2.grid(False)
         st.pyplot(fig2)
 
 
@@ -250,28 +269,25 @@ if st.button("Generar recomendaciones"):
         ax.grid(True, color= '#444444' )
         st.pyplot(fig3)
 
+
     with column2:
         platform_counts = df_filtrado['platform'].value_counts()
         labels = platform_counts.index.tolist()
         values = platform_counts.values.tolist()
 
         fig4, ax3 = plt.subplots(figsize=(8, 6))
-
-        # Definir un diccionario de colores personalizados
         colors = {'Amazon': 'blue', 'Netflix': 'red', 'HBO': 'purple'}
-
-        # Obtener el color correspondiente para cada etiqueta
         pie_colors = [colors.get(label, 'gray') for label in labels]
 
-        ax3.pie(values, labels=labels, autopct='%1.1f%%', startangle=90, colors=pie_colors)
-
+        explode = [0.1 if label == labels[0] else 0 for label in labels]
+        ax3.pie(values, labels=labels, autopct='%1.1f%%', startangle=90, colors=pie_colors, explode=explode)
         ax3.set_title('Distribución de Plataformas')
         st.pyplot(fig4)
 
 
 
-st.subheader('¡Prepara palomitas, aquí vienen tus recomendaciones!🍿')
 if df_filtrado is not None and not df_filtrado.empty:
+    st.subheader('¡Prepara palomitas, aquí vienen tus recomendaciones!🍿')
     recomendaciones_10 = df_filtrado['title'].tolist()[:10]
     column1, column2, column3 = st.columns(3)  # Divide el espacio en dos columnas
     with column1:
@@ -279,7 +295,8 @@ if df_filtrado is not None and not df_filtrado.empty:
         for i, recomendacion in enumerate(recomendaciones_10, start=1):
             st.write(f'{i}. {recomendacion}')
 else:
-    st.write('Lo siento, no se encontraron recomendaciones para tus respuestas.')
+    pass
+    #st.write('Lo siento, no se encontraron recomendaciones para tus respuestas.')
 
 
 if df_filtrado is not None and not df_filtrado.empty:
@@ -294,8 +311,8 @@ else:
     #st.write('No se encontraron datos para mostrar.')
 
 if df_filtrado is not None and not df_filtrado.empty:
-    recom_imdb = df_filtrado.sort_values('imdb_score', ascending=False)
-    recom_10_imdb = recom_imdb['title'].tolist()[:10]
+    titulos_sup8 = df_filtrado[df_filtrado['imdb_score'] > 8]
+    recom_10_imdb = titulos_sup8['title'].tolist()[:10]
     with column3:
         st.subheader('Aclamadas por la crítica')
         for i, recomendacion in enumerate(recom_10_imdb, start=1):
