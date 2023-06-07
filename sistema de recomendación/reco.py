@@ -12,6 +12,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import linear_kernel
 
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import plotly.express as px
 import seaborn as sns
 from wordcloud import WordCloud
 
@@ -39,7 +41,7 @@ add_bg_from_local('../images/3968016.png')
 
 
 st.image("../images/logo2.png", use_column_width=False)
-st.write('# Bienvenidos a FlickPick🖖')
+st.title('Bienvenidos a FlickPick🖖')
 
 
 column1, column2 = st.columns(2)
@@ -55,7 +57,7 @@ titles = pd.read_csv('../data/clean/titles.csv', encoding='utf-8', encoding_erro
 fav_film = titles['title'].tolist()
 
 # Preguntas
-pregunta1 = st.selectbox('¿Cuál es tu película o serie favorita?', fav_film)
+pregunta1 = st.selectbox('¿Cuál es tu película o serie favorita?', ['Seleccione una...'] + fav_film)
 pregunta2 = st.radio('¿Prefieres los clásicos o las producciones contemporáneas?', ['Clásicas', 'Contemporáneas', 'Ambas'])
 pregunta3 = st.radio('¿Qué tipo de trama te resulta más interesante?', ['Misterio', 'Aventura', 'Fantasía', 'Comedia', 'Romance', 'Terror', '¡Cualquiera!'])
 pregunta5 = st.radio('¿Prefieres que sean basadas en hechos reales o ficción?', ['Hechos reales', 'Ficción', '¡Cualquiera!'])
@@ -63,7 +65,8 @@ duracion_minima, duracion_maxima = st.slider('¿Cuánto debería durar?', 0, 300
 pregunta7 = st.radio('¿Te gustan los finales felices?', ['Sí', 'No', '¯\_(ツ)_/¯'])
 pregunta8 = st.text_input('¿Tienes alguna temática, época o lugar favorito?')
 #pregunta4 = st.text_input('Escribe el nombre del actor o la actriz que deba aparecer en tu lista (o no escribas ninguno)')
-pregunta9 = st.selectbox('¿Cómo quieres que realice tu recomendación?', ['Búsqueda rápida', 'Búsqueda exhaustiva'])
+pregunta9 = st.selectbox('Selecciona el método de búsqueda', ['Búsqueda rápida', 'Búsqueda exhaustiva'])
+
 
 # Recolectar las respuestas
 respuestas = {
@@ -128,46 +131,32 @@ def generar_recomendaciones(respuestas):
 
 
     # 3. Filtro por tipo de trama favorita
-    sinonimos_misterio = ['mystery', 'enigma', 'puzzle', 'riddle', 'conundrum', 'secret', 'intrigue', 'clue', 'suspense']
-    sinonimos_aventura = ['thrill', 'adventure', 'expedition', 'journey', 'quest', 'explor', 'trek', 'voyage', 'clue', 'safari', 'exploration']
-    sinonimos_fantasia = ['fantasy', 'imagination', 'imaginary', 'enchant', 'magic', 'tail', 'fairy', 'myth', 'wonder', 'dream', 'illusion', 'super', 'superhero']
-    sinonimos_romance = ['romance', 'love', 'affection', 'passion', 'relationship']
-    sinonimos_comedia = ['comedy', 'humor', 'funny', 'laughter', 'laugh', 'crack up']
-    sinonimos_terror = ['fear', 'scary', 'fright', 'terrify', 'scare']
+    palabras_clave_trama = {
+        'Comedia': ['comedy', 'humor', 'funny', 'laughter', 'laugh', 'crack up'],
+        'Terror': ['fear', 'scary', 'fright', 'terrify', 'scare'],
+        'Romance': ['romance', 'affection', 'passion', 'relationship'],
+        'Misterio': ['mystery', 'enigma', 'puzzle', 'riddle', 'conundrum', 'secret', 'intrigue', 'clue', 'suspense'],
+        'Aventura': ['thrill', 'adventure', 'expedition', 'journey', 'quest', 'explor', 'trek', 'voyage', 'clue', 'safari', 'exploration'],
+        'Fantasía': ['fantasy', 'imagination', 'imaginary', 'enchant', 'magic', 'tail', 'fairy', 'myth', 'wonder', 'dream', 'illusion', 'super', 'superhero']
+    }
 
-    if respuestas['pregunta3'] == 'Comedia':
-        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_comedia))]
+    tipo_trama = respuestas['pregunta3']
+    if tipo_trama in palabras_clave_trama:
+        comentarios_filtrados = comments[comments['review'].apply(lambda x: any(palabra_clave in x for palabra_clave in palabras_clave_trama[tipo_trama]))]
         df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
-    elif respuestas['pregunta3'] == 'Terror':
-        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_terror))]
-        df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
-    elif respuestas['pregunta3'] == 'Romance':
-        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_romance))]
-        df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
-    elif respuestas['pregunta3'] == 'Misterio':
-        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_misterio))]
-        df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
-    elif respuestas['pregunta3'] == 'Aventura':
-        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_aventura))]
-        df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
-    elif respuestas['pregunta3'] == 'Fantasía':
-        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_fantasia))]
-        df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
-    elif respuestas['pregunta3'] == '¡Cualquiera!':
-        pass
+
 
 
     # 6. Filtro para determinar ficción
-    palabras_clave_ficcion = ['fiction', 'imaginary', 'anime', 'cartoon', 'fantasy', 'fictional', 'otherworld', 'extraterrestrial']
-    
+    palabras_clave_ficcion = ['fiction', 'imaginary', 'anime', 'cartoon', 'fantasy', 'fictional', 'otherworld', 'extraterrestrial', 'sci-fi', 'science fiction', 'supernatural']
+
     if respuestas['pregunta5'] == "Ficción":
-        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, palabras_clave_ficcion))]
+        comentarios_filtrados = comments[comments['review'].apply(lambda x: any(palabra_clave in x for palabra_clave in palabras_clave_ficcion))]
         df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
     elif respuestas['pregunta5'] == "Hechos reales":
-        comentarios_filtrados = comments[~comments['review'].apply(lambda x: buscar_sinonimos(x, palabras_clave_ficcion))]
+        comentarios_filtrados = comments[~comments['review'].apply(lambda x: any(palabra_clave in x for palabra_clave in palabras_clave_ficcion))]
         df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
-    elif respuestas['pregunta5'] == '¡Cualquiera!':
-        pass
+
 
 
     # 6. Filtro por duración
@@ -176,15 +165,14 @@ def generar_recomendaciones(respuestas):
 
     # 7. Filtro por final feliz
     sinonimos_final_feliz = ['happy ending', 'positive outcome', 'pleasant conclusion', 'satisfying resolution', 'joyful finale', 'contented ending', 'delightful outcome', 'cheerful conclusion', 'pleasant ending', 'uplifting finale']
-    
+
     if respuestas['pregunta7'] == 'Sí':
-        comentarios_filtrados = comments[comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_final_feliz))]
+        comentarios_filtrados = comments[comments['review'].apply(lambda x: any(sinonimo in x for sinonimo in sinonimos_final_feliz))]
         df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
     elif respuestas['pregunta7'] == 'No':
-        comentarios_filtrados = comments[~comments['review'].apply(lambda x: buscar_sinonimos(x, sinonimos_final_feliz))]
+        comentarios_filtrados = comments[~comments['review'].apply(lambda x: any(sinonimo in x for sinonimo in sinonimos_final_feliz))]
         df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
-    elif respuestas['pregunta7'] == '¯\_(ツ)_/¯':
-        pass
+
 
 
     # 8. Filtro por tema, época o lugar favorito
@@ -202,7 +190,7 @@ def generar_recomendaciones(respuestas):
         #df_filtrado = df_filtrado[df_filtrado['actors'].str.contains(actor_favorito, case=False)]
     #else:
         #pass
-
+    
 
     return df_filtrado
 
@@ -291,11 +279,20 @@ if st.button("Generar recomendaciones"):
 
         fig5, ax5 = plt.subplots(figsize=(8, 6))
         colors = ['purple' if p == 'HBO' else 'red' if p == 'Netflix' else 'blue' for p in platform_ratings.index]
-        ax5.bar(platform_ratings.index, platform_ratings.values, color=colors)
+        bars = ax5.bar(platform_ratings.index, platform_ratings.values, color=colors)
         ax5.set_xlabel('Plataforma')
         ax5.set_ylabel('Valoración media')
         ax5.set_title('Valoración media por plataforma')
+
+        # Agregar etiquetas de puntuación a cada barra
+        for bar in bars:
+            height = bar.get_height()
+            ax5.annotate(f'{height:.2f}', xy=(bar.get_x() + bar.get_width() / 2, height),
+                        xytext=(0, 3), textcoords='offset points',
+                        ha='center', va='bottom')
+
         st.pyplot(fig5)
+
 
 
 
