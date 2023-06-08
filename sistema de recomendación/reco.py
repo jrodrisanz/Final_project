@@ -57,13 +57,13 @@ titles = pd.read_csv('../data/clean/titles.csv', encoding='utf-8', encoding_erro
 fav_film = titles['title'].tolist()
 
 # Preguntas
-pregunta1 = st.selectbox('¿Cuál es tu película o serie favorita?', ['Seleccione una...'] + fav_film)
+pregunta1 = st.selectbox('¿Cuál es tu película o serie favorita?', [''] + fav_film)
 pregunta2 = st.radio('¿Prefieres los clásicos o las producciones contemporáneas?', ['Clásicas', 'Contemporáneas', 'Ambas'])
 pregunta3 = st.radio('¿Qué tipo de trama te resulta más interesante?', ['Misterio', 'Aventura', 'Fantasía', 'Comedia', 'Romance', 'Terror', '¡Cualquiera!'])
 pregunta5 = st.radio('¿Prefieres que sean basadas en hechos reales o ficción?', ['Hechos reales', 'Ficción', '¡Cualquiera!'])
 duracion_minima, duracion_maxima = st.slider('¿Cuánto debería durar?', 0, 300, (0, 300))
 pregunta7 = st.radio('¿Te gustan los finales felices?', ['Sí', 'No', '¯\_(ツ)_/¯'])
-pregunta8 = st.text_input('¿Tienes alguna temática, época o lugar favorito?')
+pregunta8 = st.text_input('¿Tienes alguna temática favorita?')
 #pregunta4 = st.text_input('Escribe el nombre del actor o la actriz que deba aparecer en tu lista (o no escribas ninguno)')
 pregunta9 = st.selectbox('Selecciona el método de búsqueda', ['Búsqueda rápida', 'Búsqueda exhaustiva'])
 
@@ -148,14 +148,13 @@ def generar_recomendaciones(respuestas):
 
 
     # 6. Filtro para determinar ficción
-    palabras_clave_ficcion = ['fiction', 'imaginary', 'anime', 'cartoon', 'fantasy', 'fictional', 'otherworld', 'extraterrestrial', 'sci-fi', 'science fiction', 'supernatural']
-    
+    palabras_clave_real = ['based on true events', 'true story', 'real story', 'real-life', 'factual', 'documentary']
 
     if respuestas['pregunta5'] == "Ficción":
-        comentarios_filtrados = comments[comments['review'].apply(lambda x: any(palabra_clave in x for palabra_clave in palabras_clave_ficcion))]
+        comentarios_filtrados = comments[~comments['review'].apply(lambda x: any(palabra_clave in x for palabra_clave in palabras_clave_real))]
         df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
     elif respuestas['pregunta5'] == "Hechos reales":
-        comentarios_filtrados = comments[~comments['review'].apply(lambda x: any(palabra_clave in x for palabra_clave in palabras_clave_ficcion))]
+        comentarios_filtrados = comments[comments['review'].apply(lambda x: any(palabra_clave in x for palabra_clave in palabras_clave_real))]
         df_filtrado = df_filtrado.merge(comentarios_filtrados[['imdb_id']], on='imdb_id', how='inner')
 
 
@@ -317,7 +316,7 @@ if st.button("Generar recomendaciones"):
     df_filtrado['genres'] = df_filtrado['genres'].str.split(',').str[0]
     data = df_filtrado.groupby('genres').count().T.iloc[0]
 
-    etiquetas=list(df_filtrado.genres.unique())
+    etiquetas=list(df_filtrado.genres.unique())[:50]
     angulos = np.linspace(0, 2*np.pi, len(etiquetas), endpoint=False)
     angulos=np.concatenate((angulos, [angulos[0]]))
     data = np.concatenate((data, [data[0]]))
@@ -340,7 +339,7 @@ if df_filtrado is not None and not df_filtrado.empty:
     recomendaciones_10 = df_filtrado['title'].tolist()[:10]
     column1, column2, column3 = st.columns(3)  # Divide el espacio en dos columnas
     with column1:
-        st.subheader('Recomendaciones basadas en tu perfil')
+        st.subheader('Basadas en tu perfil')
         for i, recomendacion in enumerate(recomendaciones_10, start=1):
             st.write(f'{i}. {recomendacion}')
 else:
@@ -349,7 +348,7 @@ else:
 
 
 if df_filtrado is not None and not df_filtrado.empty:
-    titulos_sup8 = df_filtrado[df_filtrado['imdb_score'] > 7]
+    titulos_sup8 = df_filtrado[df_filtrado['imdb_score'] > 8]
     recom_10_imdb = titulos_sup8['title'].tolist()[:10]
     with column2:
         st.subheader('Aclamadas por la crítica')
