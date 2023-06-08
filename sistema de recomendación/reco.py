@@ -149,6 +149,7 @@ def generar_recomendaciones(respuestas):
 
     # 6. Filtro para determinar ficción
     palabras_clave_ficcion = ['fiction', 'imaginary', 'anime', 'cartoon', 'fantasy', 'fictional', 'otherworld', 'extraterrestrial', 'sci-fi', 'science fiction', 'supernatural']
+    
 
     if respuestas['pregunta5'] == "Ficción":
         comentarios_filtrados = comments[comments['review'].apply(lambda x: any(palabra_clave in x for palabra_clave in palabras_clave_ficcion))]
