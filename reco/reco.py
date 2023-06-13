@@ -332,45 +332,46 @@ if st.button("Generar recomendaciones"):
         ax.set_title('Distribución de géneros') 
         ax.grid(True, color= '#444444' )
         st.pyplot(fig3)
+
+
+
+        if df_filtrado is not None and not df_filtrado.empty:
+            st.subheader('¡Prepara palomitas, aquí vienen tus recomendaciones!🍿')
+            recomendaciones_10 = df_filtrado['title'].tolist()[:10]
+            column1, column2, column3 = st.columns(3)  # Divide el espacio en dos columnas
+            with column1:
+                st.subheader('Basadas en tu perfil')
+                for i, recomendacion in enumerate(recomendaciones_10, start=1):
+                    st.write(f'{i}. {recomendacion}')
+        else:
+            pass
+            #st.write('Lo siento, no se encontraron recomendaciones para tus respuestas.')
+
+
+        if df_filtrado is not None and not df_filtrado.empty:
+            titulos_sup8 = df_filtrado[df_filtrado['imdb_score'] > 8]
+            recom_10_imdb = titulos_sup8['title'].tolist()[:10]
+            with column2:
+                st.subheader('Aclamadas por la crítica')
+                for i, recomendacion in enumerate(recom_10_imdb, start=1):
+                    st.write(f'{i}. {recomendacion}')
+        else:
+            pass
+
+
+        if df_filtrado is not None and not df_filtrado.empty:
+            actor_counts = df_filtrado['actors'].str.split(',').explode().str.strip().value_counts()
+            actores_mas_comunes = actor_counts.sort_values(ascending=False).head(10)
+            with column3:
+                st.subheader('Actores más comunes')
+                for actor, count in actores_mas_comunes.items():
+                    st.write(f'{actor}: {count} apariciones')
+        else:
+            pass
+            #st.write('No se encontraron datos para mostrar.')
+            
     except Exception as e:
         st.error("Lo siento, no se encontraron recomendaciones para tus respuestas")
-
-
-
-if df_filtrado is not None and not df_filtrado.empty:
-    st.subheader('¡Prepara palomitas, aquí vienen tus recomendaciones!🍿')
-    recomendaciones_10 = df_filtrado['title'].tolist()[:10]
-    column1, column2, column3 = st.columns(3)  # Divide el espacio en dos columnas
-    with column1:
-        st.subheader('Basadas en tu perfil')
-        for i, recomendacion in enumerate(recomendaciones_10, start=1):
-            st.write(f'{i}. {recomendacion}')
-else:
-    pass
-    #st.write('Lo siento, no se encontraron recomendaciones para tus respuestas.')
-
-
-if df_filtrado is not None and not df_filtrado.empty:
-    titulos_sup8 = df_filtrado[df_filtrado['imdb_score'] > 8]
-    recom_10_imdb = titulos_sup8['title'].tolist()[:10]
-    with column2:
-        st.subheader('Aclamadas por la crítica')
-        for i, recomendacion in enumerate(recom_10_imdb, start=1):
-            st.write(f'{i}. {recomendacion}')
-else:
-    pass
-
-
-if df_filtrado is not None and not df_filtrado.empty:
-    actor_counts = df_filtrado['actors'].str.split(',').explode().str.strip().value_counts()
-    actores_mas_comunes = actor_counts.sort_values(ascending=False).head(10)
-    with column3:
-        st.subheader('Actores más comunes')
-        for actor, count in actores_mas_comunes.items():
-            st.write(f'{actor}: {count} apariciones')
-else:
-    pass
-    #st.write('No se encontraron datos para mostrar.')
 
 
 
