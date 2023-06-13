@@ -199,138 +199,142 @@ def generar_recomendaciones(respuestas):
 df_filtrado = None
 
 if st.button("Generar recomendaciones"):
-    loading_image = st.image('../images/eating-popcorn-ms-chalice.gif', use_column_width=True) 
-    df_filtrado = generar_recomendaciones(respuestas)
-    loading_image.empty()
 
-    column1, column2 = st.columns(2)
+    try:
 
-    with column1:
-        st.image('../images/popdef-removebg-preview.png', use_column_width=False)
-    with column2:
-        st.write('### Ahora podrás explorar diferentes gráficos sobre las películas y series que más se adaptan a ti')
+        loading_image = st.image('../images/proyector.gif', use_column_width=True) 
+        df_filtrado = generar_recomendaciones(respuestas)
+        loading_image.empty()
 
-    plt.style.use('dark_background')
+        column1, column2 = st.columns(2)
 
-    column1, column2 = st.columns(2)
+        with column1:
+            st.image('../images/popdef-removebg-preview.png', use_column_width=False)
+        with column2:
+            st.write('### Ahora podrás explorar diferentes gráficos sobre las películas y series que más se adaptan a ti')
 
-    # Gráfico para año de lanzamiento
-    with column1:
-        movie_counts = df_filtrado[df_filtrado['type'] == 'MOVIE']['release_year'].value_counts().sort_index()
-        series_counts = df_filtrado[df_filtrado['type'] == 'SHOW']['release_year'].value_counts().sort_index()
+        plt.style.use('dark_background')
+
+        column1, column2 = st.columns(2)
+
+        # Gráfico para año de lanzamiento
+        with column1:
+            movie_counts = df_filtrado[df_filtrado['type'] == 'MOVIE']['release_year'].value_counts().sort_index()
+            series_counts = df_filtrado[df_filtrado['type'] == 'SHOW']['release_year'].value_counts().sort_index()
+            
+            fig1, ax1 = plt.subplots(figsize=(8, 6))
+            ax1.fill_between(movie_counts.index, movie_counts.values, color='orange', alpha=0.5)
+            ax1.fill_between(series_counts.index, series_counts.values, color='green', alpha=0.5)
+            sns.lineplot(x=movie_counts.index, y=movie_counts.values, color='orange', label='Películas')
+            sns.lineplot(x=series_counts.index, y=series_counts.values, color='green', label='Series')
+            
+            max_movie_year = movie_counts.idxmax()
+            max_series_year = series_counts.idxmax()
+            max_movie_count = movie_counts.max()
+            max_series_count = series_counts.max()
+            
+            ax1.axvline(x=max_movie_year, color='orange', linestyle='--', label=f'Año ideal de producción de películas ({max_movie_year})')
+            ax1.axvline(x=max_series_year, color='green', linestyle='--', label=f'Año ideal de producción de series ({max_series_year})')
+            
+            ax1.set_xlabel('Año de lanzamiento')
+            ax1.set_ylabel('Número de títulos')
+            ax1.set_title('Distribución de películas y series por año de lanzamiento')
+            ax1.legend()
+            ax1.grid(False)
+            
+            st.pyplot(fig1)
+
+
+
+        # Gráfico para distribución de duración de las películas
+        with column2:
+            fig2, ax2 = plt.subplots(figsize=(8, 6))
+            
+            movies_data = df_filtrado[df_filtrado['type'] == 'MOVIE']
+            series_data = df_filtrado[df_filtrado['type'] == 'SHOW']
+            
+            ax2.hist(movies_data['runtime'], bins=20, color='orange', alpha=0.7, label='Películas')
+            ax2.hist(series_data['runtime'], bins=20, color='green', alpha=0.7, label='Series')
+            
+            ax2.set_xlabel('Duración (minutos)')
+            ax2.set_ylabel('Número de títulos')
+            ax2.set_title('Distribución de duración')
+            ax2.legend()
+            ax2.grid(False)
+            
+            # Resaltar duración con mayor número de películas
+            max_movies_duration = movies_data['runtime'].value_counts().idxmax()
+            ax2.axvline(max_movies_duration, color='orange', linestyle='--', linewidth=2, label=f'Duración ideal de películas({max_movies_duration} min)')
+            max_series_duration = series_data['runtime'].value_counts().idxmax()
+            ax2.axvline(max_series_duration, color='green', linestyle='--', linewidth=2, label=f'Duración ideal de series({max_series_duration} min)')
+            
+            ax2.legend()
+            st.pyplot(fig2)
+
+
+        column1, column2 = st.columns(2)
+
+        # Gráfico por puntuación en imdb
+        with column1:
+            platforms = ['Netflix', 'HBO', 'Amazon']
+            filtered_df = df_filtrado[df_filtrado['platform'].isin(platforms)]
+            platform_ratings = filtered_df.groupby('platform')['imdb_score'].mean()
+
+            fig5, ax5 = plt.subplots(figsize=(8, 6))
+            colors = ['purple' if p == 'HBO' else 'red' if p == 'Netflix' else 'blue' for p in platform_ratings.index]
+            bars = ax5.bar(platform_ratings.index, platform_ratings.values, color=colors)
+            ax5.set_xlabel('Plataforma')
+            ax5.set_ylabel('Valoración media')
+            ax5.set_title('Valoración media por plataforma')
+
+            # Agregar etiquetas de puntuación a cada barra
+            for bar in bars:
+                height = bar.get_height()
+                ax5.annotate(f'{height:.2f}', xy=(bar.get_x() + bar.get_width() / 2, height),
+                            xytext=(0, 3), textcoords='offset points',
+                            ha='center', va='bottom')
+
+            st.pyplot(fig5)
+
+
+
+
+        # Gráfico de tarta por plataforma
+        with column2:
+            platform_counts = df_filtrado['platform'].value_counts()
+            labels = platform_counts.index.tolist()
+            values = platform_counts.values.tolist()
+
+            fig4, ax3 = plt.subplots(figsize=(8, 6))
+            colors = {'Amazon': 'blue', 'Netflix': 'red', 'HBO': 'purple'}
+            pie_colors = [colors.get(label, 'gray') for label in labels]
+
+            explode = [0.1 if label == labels[0] else 0 for label in labels]
+            ax3.pie(values, labels=labels, autopct='%1.1f%%', startangle=90, colors=pie_colors, explode=explode)
+            ax3.set_title('Distribución de Plataformas')
+            st.pyplot(fig4)
+
         
-        fig1, ax1 = plt.subplots(figsize=(8, 6))
-        ax1.fill_between(movie_counts.index, movie_counts.values, color='orange', alpha=0.5)
-        ax1.fill_between(series_counts.index, series_counts.values, color='green', alpha=0.5)
-        sns.lineplot(x=movie_counts.index, y=movie_counts.values, color='orange', label='Películas')
-        sns.lineplot(x=series_counts.index, y=series_counts.values, color='green', label='Series')
-        
-        max_movie_year = movie_counts.idxmax()
-        max_series_year = series_counts.idxmax()
-        max_movie_count = movie_counts.max()
-        max_series_count = series_counts.max()
-        
-        ax1.axvline(x=max_movie_year, color='orange', linestyle='--', label=f'Año ideal de producción de películas ({max_movie_year})')
-        ax1.axvline(x=max_series_year, color='green', linestyle='--', label=f'Año ideal de producción de series ({max_series_year})')
-        
-        ax1.set_xlabel('Año de lanzamiento')
-        ax1.set_ylabel('Número de títulos')
-        ax1.set_title('Distribución de películas y series por año de lanzamiento')
-        ax1.legend()
-        ax1.grid(False)
-        
-        st.pyplot(fig1)
+        # Gráfico polar géneros
+        df_filtrado['genres'] = df_filtrado['genres'].str.split(',').str[0]
+        data = df_filtrado.groupby('genres').count().T.iloc[0]
 
+        etiquetas=list(df_filtrado.genres.unique())[:50]
+        angulos = np.linspace(0, 2*np.pi, len(etiquetas), endpoint=False)
+        angulos=np.concatenate((angulos, [angulos[0]]))
+        data = np.concatenate((data, [data[0]]))
+        fig3 = plt.figure()
 
-
-    # Gráfico para distribución de duración de las películas
-    with column2:
-        fig2, ax2 = plt.subplots(figsize=(8, 6))
-        
-        movies_data = df_filtrado[df_filtrado['type'] == 'MOVIE']
-        series_data = df_filtrado[df_filtrado['type'] == 'SHOW']
-        
-        ax2.hist(movies_data['runtime'], bins=20, color='orange', alpha=0.7, label='Películas')
-        ax2.hist(series_data['runtime'], bins=20, color='green', alpha=0.7, label='Series')
-        
-        ax2.set_xlabel('Duración (minutos)')
-        ax2.set_ylabel('Número de títulos')
-        ax2.set_title('Distribución de duración')
-        ax2.legend()
-        ax2.grid(False)
-        
-        # Resaltar duración con mayor número de películas
-        max_movies_duration = movies_data['runtime'].value_counts().idxmax()
-        ax2.axvline(max_movies_duration, color='orange', linestyle='--', linewidth=2, label=f'Duración ideal de películas({max_movies_duration} min)')
-        max_series_duration = series_data['runtime'].value_counts().idxmax()
-        ax2.axvline(max_series_duration, color='green', linestyle='--', linewidth=2, label=f'Duración ideal de series({max_series_duration} min)')
-        
-        ax2.legend()
-        st.pyplot(fig2)
-
-
-    column1, column2 = st.columns(2)
-
-    # Gráfico por puntuación en imdb
-    with column1:
-        platforms = ['Netflix', 'HBO', 'Amazon']
-        filtered_df = df_filtrado[df_filtrado['platform'].isin(platforms)]
-        platform_ratings = filtered_df.groupby('platform')['imdb_score'].mean()
-
-        fig5, ax5 = plt.subplots(figsize=(8, 6))
-        colors = ['purple' if p == 'HBO' else 'red' if p == 'Netflix' else 'blue' for p in platform_ratings.index]
-        bars = ax5.bar(platform_ratings.index, platform_ratings.values, color=colors)
-        ax5.set_xlabel('Plataforma')
-        ax5.set_ylabel('Valoración media')
-        ax5.set_title('Valoración media por plataforma')
-
-        # Agregar etiquetas de puntuación a cada barra
-        for bar in bars:
-            height = bar.get_height()
-            ax5.annotate(f'{height:.2f}', xy=(bar.get_x() + bar.get_width() / 2, height),
-                        xytext=(0, 3), textcoords='offset points',
-                        ha='center', va='bottom')
-
-        st.pyplot(fig5)
-
-
-
-
-    # Gráfico de tarta por plataforma
-    with column2:
-        platform_counts = df_filtrado['platform'].value_counts()
-        labels = platform_counts.index.tolist()
-        values = platform_counts.values.tolist()
-
-        fig4, ax3 = plt.subplots(figsize=(8, 6))
-        colors = {'Amazon': 'blue', 'Netflix': 'red', 'HBO': 'purple'}
-        pie_colors = [colors.get(label, 'gray') for label in labels]
-
-        explode = [0.1 if label == labels[0] else 0 for label in labels]
-        ax3.pie(values, labels=labels, autopct='%1.1f%%', startangle=90, colors=pie_colors, explode=explode)
-        ax3.set_title('Distribución de Plataformas')
-        st.pyplot(fig4)
-
-    
-    # Gráfico polar géneros
-    df_filtrado['genres'] = df_filtrado['genres'].str.split(',').str[0]
-    data = df_filtrado.groupby('genres').count().T.iloc[0]
-
-    etiquetas=list(df_filtrado.genres.unique())[:50]
-    angulos = np.linspace(0, 2*np.pi, len(etiquetas), endpoint=False)
-    angulos=np.concatenate((angulos, [angulos[0]]))
-    data = np.concatenate((data, [data[0]]))
-    fig3 = plt.figure()
-
-    ax = fig3.add_subplot(111, polar=True)
-    ax.plot(angulos, data, 'o-', linewidth=2, color= 'red') 
-    ax.fill(angulos, data, alpha=0.25, color= 'red') 
-    ax.set_xticklabels([]) 
-    ax.set_thetagrids(angulos * 180/np.pi, etiquetas+[etiquetas[0]])  
-    ax.set_title('Distribución de géneros') 
-    ax.grid(True, color= '#444444' )
-    st.pyplot(fig3)
-
+        ax = fig3.add_subplot(111, polar=True)
+        ax.plot(angulos, data, 'o-', linewidth=2, color= 'red') 
+        ax.fill(angulos, data, alpha=0.25, color= 'red') 
+        ax.set_xticklabels([]) 
+        ax.set_thetagrids(angulos * 180/np.pi, etiquetas+[etiquetas[0]])  
+        ax.set_title('Distribución de géneros') 
+        ax.grid(True, color= '#444444' )
+        st.pyplot(fig3)
+    except Exception as e:
+        st.error("Lo siento, no se encontraron recomendaciones para tus respuestas")
 
 
 
